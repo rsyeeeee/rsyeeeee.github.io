@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初級大人指南書 - 線上電子書</title>
+    <style>
+        :root {
+            /* 背景與書本設定 */
+            --bg-color: #E2D9C8; 
+            --book-bg: #FFFEFA; 
+            
+            /* 基礎文字與主色調 */
+            --text-color: #2C221E; 
+            --primary-color: #5D3A29; 
+            --accent-color: #B56535; 
+            --border-color: #D7CFC1; 
+            
+            /* 標題專屬顏色階層 (新增) */
+            --h2-color: #3A2318; /* 極深棕色 (章節大標) */
+            --h3-color: #B24C20; /* 磚紅/鐵鏽紅 (段落標題) */
+            --h4-color: #71523E; /* 拿鐵深棕 (小標題) */
+
+            /* 增強立體陰影 */
+            --shadow: 0 25px 50px rgba(40, 30, 20, 0.2);
+            --font-serif: "Noto Serif TC", "PingFang TC", "Microsoft JhengHei", serif;
+            --font-sans: "PingFang TC", "Microsoft JhengHei", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: var(--font-sans);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 頂部導覽列 */
+        header {
+            background-color: rgba(255, 254, 250, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        }
+
+        .book-title {
+            font-family: var(--font-serif);
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* 頂部翻頁提示文字 */
+        .header-hint {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            font-family: var(--font-sans);
+            font-weight: normal;
+            animation: pulse-hint 2.5s infinite;
+        }
+
+        @keyframes pulse-hint {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 6px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #4A2E20;
+            border-color: #4A2E20;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #ccc;
+            color: #999;
+            background-color: transparent;
+        }
+
+        /* 電子書主容器 */
+        .book-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .book {
+            background-color: var(--book-bg);
+            width: 100%;
+            height: 800px;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #D7CFC1;
+        }
+
+        /* 書本中央立體書脊陰影加深 */
+        .book::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: linear-gradient(to right, rgba(0,0,0,0.12), rgba(0,0,0,0.03) 25%, rgba(0,0,0,0.03) 75%, rgba(0,0,0,0.12));
+            z-index: 10;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        /* 隱形點擊翻頁感應區 + 視覺提示箭頭 */
+        .flip-zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            z-index: 40;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .flip-zone-left { left: 0; }
+        .flip-zone-right { right: 0; }
+
+        .flip-zone::before {
+            content: '';
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            opacity: 0.25;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .flip-zone-left::before { content: '⟨'; }
+        .flip-zone-right::before { content: '⟩'; }
+
+        .flip-zone:hover {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .flip-zone:hover::before {
+            opacity: 1;
+            transform: scale(1.15);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* 頁面基礎樣式與翻頁動畫 */
+        .page-wrapper {
+            width: 50%;
+            height: 100%;
+            padding: 55px 70px;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            background-color: var(--book-bg);
+            z-index: 5;
+        }
+
+        .page-wrapper.active-left {
+            display: flex;
+            animation: flipLeft 0.4s ease-out forwards;
+        }
+
+        .page-wrapper.active-right {
+            display: flex;
+            animation: flipRight 0.4s ease-out forwards;
+        }
+
+        @keyframes flipLeft {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes flipRight {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* 左右頁面的內距微調，符合裝訂邊視覺 */
+        .page-wrapper:nth-child(odd) {
+            border-right: 1px solid rgba(0,0,0,0.05);
+            padding-right: 60px;
+        }
+        .page-wrapper:nth-child(even) {
+            padding-left: 60px;
+        }
+
+        /* 精裝書封面樣式 */
+        .page-cover {
+            width: 100% !important;
+            background-color: #EAE2D6;
+            display: flex !important;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 50; /* 確保在 flip-zone 之上 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .page-cover.hidden {
+            transform: translateX(-100%);
+            pointer-events: none;
+        }
+
+        .cover-img {
+            max-height: 590px;
+            width: auto;
+            max-width: 90%;
+            border-radius: 4px;
+            box-shadow: 0 15px 40px rgba(58, 50, 45, 0.35);
+            margin-bottom: 25px;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+
+        /* =========================================
+           內文標題與字體排版升級區 (區分顏色層級)
+           ========================================= */
+        
+        /* H2 章節大標 (如：第五章) */
+        h2.chapter-title {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            color: var(--h2-color);
+            margin-bottom: 25px;
+            border-bottom: 3px solid var(--h3-color);
+            border-left: 8px solid var(--h2-color);
+            background: linear-gradient(120deg, rgba(178, 76, 32, 0.12), transparent);
+            padding: 12px 20px;
+            border-radius: 4px;
+            letter-spacing: 1px;
+        }
+
+        /* H3 段落標題 (如：問題發想、結語) */
+        h3.section-title {
+            font-family: var(--font-serif);
+            font-size: 1.45rem;
+            color: var(--h3-color); /* 改為顯眼的磚紅色 */
+            margin: 28px 0 18px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            line-height: 1.4;
+            font-weight: bold;
+        }
+
+        h3.section-title::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 24px;
+            background-color: var(--h3-color);
+            border-radius: 3px;
+        }
+
+        /* H4 小標題 (如：一、將工作與生活分開) */
+        h4.sub-title {
+            color: var(--h4-color);
+            font-size: 1.15rem;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            background-color: rgba(113, 82, 62, 0.08); /* 加上膠囊底色 */
+            padding: 8px 16px;
+            border-radius: 6px;
+            border-left: 4px solid var(--h4-color); /* 左側點綴線條 */
+            display: inline-block;
+        }
+
+        /* ========================================= */
+
+        p {
+            font-size: 1.05rem;
+            line-height: 1.9;
+            margin-bottom: 18px;
+            text-align: justify;
+            color: var(--text-color);
+        }
+
+        .bold-highlight {
+            font-weight: bold;
+            color: #1A1310;
+            background: linear-gradient(transparent 65%, rgba(181, 101, 53, 0.25) 35%);
+            padding: 0 4px;
+        }
+
+        /* 目錄排版 */
+        .toc-list {
+            list-style: none;
+            margin-top: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .toc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 10px;
+            border-bottom: 1px dashed var(--h3-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .toc-item:hover .toc-name {
+            color: var(--h3-color);
+            transform: translateX(6px);
+            font-weight: bold;
+        }
+
+        .toc-name {
+            font-size: 1.1rem;
+            transition: transform 0.2s ease, font-weight 0.2s ease;
+        }
+
+        .toc-page {
+            font-family: var(--font-serif);
+            font-weight: bold;
+            color: var(--h2-color);
+            font-size: 1.1rem;
+        }
+
+        .toc-item.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-bottom: 1px dashed #D7CFC1;
+        }
+        .toc-item.disabled:hover .toc-name {
+            color: inherit;
+            transform: none;
+            font-weight: normal;
+        }
+
+        /* 重點對比圖卡 */
+        .comparison-card {
+            background-color: rgba(181, 101, 53, 0.08);
+            border-left: 5px solid var(--h3-color);
+            padding: 22px;
+            margin-bottom: 22px;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            position: relative;
+            z-index: 10;
+        }
+
+        .comparison-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            margin-bottom: 14px;
+            color: var(--h2-color);
+        }
+
+        /* 三問篩選原則樣式 */
+        .checklist-box {
+            background: #FFFFFF;
+            border: 2px solid var(--border-color);
+            border-left: 6px solid var(--h2-color);
+            border-radius: 8px;
+            padding: 22px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+            position: relative;
+            z-index: 10;
+        }
+
+        .checklist-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--h2-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .check-item {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .check-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .check-circle {
+            background-color: var(--h3-color);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+            box-shadow: 0 2px 5px rgba(181, 101, 53, 0.3);
+        }
+
+        /* 重點金句外盒 */
+        .quote-box {
+            background: linear-gradient(135deg, #FFFEFA 0%, #F4ECE1 100%);
+            border: 2px solid var(--h3-color);
+            padding: 35px 30px;
+            border-radius: 12px;
+            margin-top: 40px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(181, 101, 53, 0.15);
+            z-index: 10;
+        }
+
+        .quote-tag {
+            position: absolute;
+            top: -14px;
+            left: 30px;
+            background: var(--h3-color);
+            color: white;
+            padding: 4px 18px;
+            font-size: 0.9rem;
+            border-radius: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 8px rgba(181, 101, 53, 0.3);
+        }
+
+        .quote-content {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            line-height: 1.85;
+            color: var(--h2-color);
+            font-weight: bold;
+            text-align: justify;
+        }
+
+        /* 意境插畫頁面配置 */
+        .illustration-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .inserted-img {
+            max-width: 100%;
+            max-height: 420px;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            border: 1px solid var(--border-color);
+            margin-bottom: 5px;
+        }
+
+        /* 頁碼腳位 */
+        .page-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #8C7B70;
+            border-top: 1px solid #D7CFC1;
+            padding-top: 15px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        /* 底部版權宣告 */
+        footer.main-footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.85rem;
+            color: #8C7B70;
+            border-top: 1px solid var(--border-color);
+            background-color: #FFFEFA;
+        }
+
+        /* RWD 響應式 */
+        @media (max-width: 950px) {
+            .flip-zone {
+                display: none !important; /* 行動版使用滾動，隱藏左右翻頁區 */
+            }
+            .header-hint {
+                display: none !important; /* 行動版隱藏提示文字 */
+            }
+            .book {
+                height: auto;
+                min-height: 700px;
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            .book::after {
+                display: none;
+            }
+            .page-wrapper {
+                width: 100% !important;
+                padding: 35px 25px !important;
+                display: none;
+                border-right: none !important;
+            }
+            .page-wrapper.active-left {
+                display: flex;
+            }
+            .page-wrapper.active-right {
+                display: flex; 
+                border-top: 2px dashed var(--border-color);
+            }
+            .cover-img {
+                max-height: 450px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="book-title">
+            《初級大人指南書》電子書版本
+            <span class="header-hint">💡 提示：點擊書本左右兩側可快速翻頁</span>
+        </div>
+        <div class="nav-controls">
+            <button class="btn" id="btn-toc">返回目錄</button>
+            <button class="btn" id="btn-prev">上一頁</button>
+            <span id="page-indicator" style="font-size: 1rem; color: var(--primary-color); font-weight: bold;">封面</span>
+            <button class="btn btn-primary" id="btn-next">下一頁</button>
+        </div>
+    </header>
+
+    <div class="book-container">
+        <div class="book" id="book-element">
+            
+            <!-- 隱形翻頁感應區 (帶有箭頭提示) -->
+            <div class="flip-zone flip-zone-left" id="zone-left" title="點擊回上一頁"></div>
+            <div class="flip-zone flip-zone-right" id="zone-right" title="點擊進下一頁"></div>
+
+            <!-- 封面 (Spread 0) -->
+            <div class="page-cover" id="cover-page">
+                <img src="edited-image.jpg" alt="初級大人指南書 封面" class="cover-img" onerror="this.src='圖檔一.png';">
+                <div>
+                    <button class="btn btn-primary" style="padding: 12px 40px; font-size: 1.1rem; box-shadow: 0 6px 15px rgba(93,58,41,0.3);" onclick="startReading()">開啟閱讀 ➔</button>
+                </div>
+            </div>
+
+            <!-- 第 1 頁 (Spread 1 - Left) -->
+            <div class="page-wrapper" id="p1">
+                <div>
+                    <h2 class="chapter-title">目錄</h2>
+                    <ul class="toc-list">
+                        <li class="toc-item disabled">
+                            <span class="toc-name">前言 ｜ 這個時代的「新」大人</span>
+                            <span class="toc-page">-</span>
+                        </li>
+                        <li class="toc-item disabled">
+                            <span class="toc-name">第一章 ｜ 金錢管理 有理才有財</span>
+                            <span class="toc-page">-</span>
+                        </li>
+                        <li class="toc-item disabled">
+                            <span class="toc-name">第二章 ｜ 生活機能 租房作戰大補帖</span>
+                            <span class="toc-page">-</span>
+                        </li>
+                        <li class="toc-item disabled">
+                            <span class="toc-name">第三章 ｜ 保險項目 有個朋友正試圖賣我保險</span>
+                            <span class="toc-page">-</span>
+                        </li>
+                        <li class="toc-item disabled">
+                            <span class="toc-name">第四章 ｜ 打工需知 知己知彼的工作守則</span>
+                            <span class="toc-page">-</span>
+                        </li>
+                        <li class="toc-item" onclick="jumpToPage(1)">
+                            <span class="toc-name">
+                                <strong style="color: var(--h3-color); font-weight: bold;">第五章 ｜ 人際關係 大學之後，人際不重要?</strong>
+                            </span>
+                            <span class="toc-page">P.2</span>
+                        </li>
+                        <li class="toc-item disabled">
+                            <span class="toc-name">第六章 ｜ 情緒管理 遇到壓力如何迎刃而解?</span>
+                            <span class="toc-page">-</span>
+                        </li>
+                        <li class="toc-item disabled">
+                            <span class="toc-name">結尾 ｜ 能做到這樣，已經很棒了！</span>
+                            <span class="toc-page">-</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="page-footer">
+                    <span>CONTENTS</span>
+                    <span>1</span>
+                </div>
+            </div>
+
+            <!-- 第 2 頁 (Spread 1 - Right) -->
+            <div class="page-wrapper" id="p2">
+                <div>
+                    <h2 class="chapter-title">第五章 ｜ 人際關係</h2>
+                    <h3 class="section-title">內心的孤島：我們為什麼越長大越孤單？</h3>
+                    <p>你是否也曾有過這樣的瞬間？翻開通訊錄時卻赫然發現自己沒什麼朋友，每當想要拓展生活圈去嘗試不一樣的事物時，卻感到相當的無力，同時也很難交到新的朋友，到最後甚至連僅有的那些老朋友，都變成了極少主動聯繫的人。</p>
+                    <p>這並非只是你的無病呻吟，而是無數成年人的共同寫照。環顧四周，進入職場的大人都告訴我們要好好把握還在讀書的時光，因為進入職場後，每個人都戴著面具點頭微笑，再加上每天家裡與公司兩點一線、環境單一的現實，讓我們在步入社會後，讓原有的社交圈漸漸萎縮成了一座孤島。</p>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>2</span>
+                </div>
+            </div>
+
+            <!-- 第 3 頁 (Spread 2 - Left) -->
+            <div class="page-wrapper" id="p3">
+                <div>
+                    <p>本章將從問題發想開始，並一步步探索：朋友為什麼會漸行漸遠？人際關係究竟發生了哪些變化？面對交友困境時，又能如何找到適合自己的相處方式。</p>
+                    <p>成長從來不只是年齡的增加，更是一場重新認識自己、理解他人，以及學會珍惜與放下的旅程。長大，不是失去朋友，而是在不同的人生階段裡，學會找到適合彼此的位置。</p>
+                    
+                    <div class="illustration-page">
+                        <img src="圖檔一.png" alt="人際關係意境插畫" class="inserted-img">
+                    </div>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>3</span>
+                </div>
+            </div>
+
+            <!-- 第 4 頁 (Spread 2 - Right) -->
+            <div class="page-wrapper" id="p4">
+                <div>
+                    <h3 class="section-title">問題發想：為什麼大人不能像學生一樣交朋友？</h3>
+                    <p>我們總在懷念學生時代的單純，那為什麼長大後，交朋友這件事會變得如此舉步維艱？從學生到大人，社交的本質發生了三個核心的質變：</p>
+                    
+                    <h4 class="sub-title">一、從「同質性」到「學會尊重」</h4>
+                    <p>學生時代的我們，像是被放進同一個溫室裡的植物。我們穿著同樣的制服、抱怨著同一個老師、為了同一場考試熬夜、對著同一個偶像尖叫。那時的友誼建立在高度的「同質性」上——因為我們的生活軌跡幾乎完全重合，所以產生共鳴是一件毫不費力的事情。</p>
+                    <p>然而，大人的世界是一片充滿差異的曠野。畢業後，有人選擇創業打拼，有人追求安穩考取公職；有人早早步入婚姻生兒育女，有人享受單身專注於自我成長；有人留在故鄉，有人則漂泊異鄉。當生活軌跡開始分岔，「共同語言」會迅速流失。</p>
+                    <p>在成年人的社交裡，維繫關係的關鍵不再是我們有多像，而是我們能否<span class="bold-highlight">尊重並理解彼此的不同</span>。當單身的朋友能理解育兒朋友的疲憊，這段關係才能在差異中存活下來，大人間的友誼會需要更高的包容力與同理心。</p>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>4</span>
+                </div>
+            </div>
+
+            <!-- 第 5 頁 (Spread 3 - Left) -->
+            <div class="page-wrapper" id="p5">
+                <div>
+                    <h4 class="sub-title">二、從「情緒價值」到「功能價值」</h4>
+                    <p>回想過去，一句「我心情不好，陪我聊聊」，朋友就能馬上放下手邊的事。學生時代我們最不缺的就是時間，交朋友圖的往往是純粹的<span class="bold-highlight">情緒價值</span>。</p>
+                    <p>但成年人的世界，每個人都被工作、貸款、家庭責任榨乾了精力，時間也就成為最稀缺的資源。大人的社交不自覺地會傾向<span class="bold-highlight">功能價值</span>的考量，現實逼著我們衡量：這場聚會值得我犧牲睡眠嗎？這段關係能為工作帶來啟發嗎？</p>
+                    <p>我們不再有精力去承接無止盡的負能量，而是更傾向與能帶來新資訊、提供實質幫助的人建立連結，這是一種保護自己能量的生存機制。</p>
+
+                    <h4 class="sub-title">三、從「志同道合」到「人脈利益」</h4>
+                    <p>小時候交朋友全憑直覺，關係只有簡單的喜歡與不喜歡。但走入社會後，每個人身上都被貼滿了標籤，因此大人的社交往往夾雜著階層、頭銜與<span class="bold-highlight">人脈利益</span>的交換。</p>
+                    <p>很多時候參加聚餐不是因為喜歡，而是因為是個「有用的局」。成年人若能在這層層社會濾鏡之下，依然找到願意卸下防備、不談頭銜的朋友，這份友誼反而比學生時代更加深刻與珍貴。</p>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>5</span>
+                </div>
+            </div>
+
+            <!-- 第 6 頁 (Spread 3 - Right) -->
+            <div class="page-wrapper" id="p6">
+                <div>
+                    <h3 class="section-title">解決方法：如何奪回主導權，打造有效社交？</h3>
+                    <p>從理解大人社交的本質轉變後，我們就不該再將精力耗費在無效的感傷中，面對這些無法迴避的社交痛點，一味地迎合或委曲求全，只會讓自己陷入嚴重的內耗。成熟大人的解法，是學會主動篩選，將人際關係的遙控器握回自己手裡。</p>
+                    
+                    <h4 class="sub-title">一、將工作與生活分開</h4>
+                    <p>我們往往因為一天有超過三分之一的時間待在職場，就不自覺地將同事視為潛在的朋友候選人，這其實是許多職場內耗的根源。</p>
+                    
+                    <div class="comparison-card">
+                        <div class="comparison-title">大人的破局之道</div>
+                        <ul style="padding-left: 20px; font-size: 1rem; line-height: 1.7; color: var(--text-color);">
+                            <li style="margin-bottom: 10px;"><span class="bold-highlight">降低情感期待：</span> 職場的本質是利益交換與協作，而非交友俱樂部，請務必接受同事間存在著潛在的競爭。</li>
+                            <li style="margin-bottom: 10px;"><span class="bold-highlight">劃清公私界線：</span> 在工作上保持絕對的專業與高度配合，但不必勉強自己參與每一個下班後的應酬。</li>
+                            <li><span class="bold-highlight">保留脆弱的權利：</span> 應該把你最珍貴的感性、軟弱與陪伴，留給下班後那些真正愛你的家人與摯友。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>6</span>
+                </div>
+            </div>
+
+            <!-- 第 7 頁 (Spread 4 - Left) -->
+            <div class="page-wrapper" id="p7">
+                <div>
+                    <h4 class="sub-title">二、拒絕不必要的社交</h4>
+                    <p>我們經常因為害怕被邊緣化而勉強自己參加各種局，但回想一下，那些充滿攀比心態的同學會，或是總是在抱怨與八卦的下午茶，結束後你感到的是充實，還是被抽乾能量的疲憊？</p>
+                    
+                    <p><span class="bold-highlight">大人的破局之道：</span> 勇敢地向「消耗你」的關係說不。一個人在家看書、泡澡、追劇，甚至只是發呆，都比戴著面具迎合他人來得有價值。</p>
+                    
+                    <div class="checklist-box">
+                        <div class="checklist-title">💡 赴約三問 ｜ 答應邀約前的自我審查：</div>
+                        <div class="check-item">
+                            <div class="check-circle">1</div>
+                            <div style="font-size: 1rem; color: var(--text-color);"><span class="bold-highlight">情緒價值：</span>這場聚會能讓我感到純粹的快樂、放鬆或自在嗎？</div>
+                        </div>
+                        <div class="check-item">
+                            <div class="check-circle">2</div>
+                            <div style="font-size: 1rem; color: var(--text-color);"><span class="bold-highlight">功能價值：</span>這場聚會能帶給我實用的新知、有益的啟發，或是實質的幫助嗎？</div>
+                        </div>
+                        <div class="check-item">
+                            <div class="check-circle">3</div>
+                            <div style="font-size: 1rem; color: var(--text-color);"><span class="bold-highlight">機會成本：</span>如果我不去，會對人生、工作或重要關係造成重大損失嗎？</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 1rem; font-style: italic; color: var(--h3-color); font-weight: bold;">如果答案都是「否」，你可以用溫和但堅定的態度禮貌地說不。真正懂你的朋友不會因此生氣。</p>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>7</span>
+                </div>
+            </div>
+
+            <!-- 第 8 頁 (Spread 4 - Right) -->
+            <div class="page-wrapper" id="p8">
+                <div>
+                    <h4 class="sub-title">三、重質不重量的「微連結」</h4>
+                    <p>學生時代我們總希望擁有一大群朋友，走到哪都熱熱鬧鬧；但成年後你會發現，能承載你人生重量的人，其實寥寥無幾。如果把每個人的社交圈畫成一個同心圓，我們必須學會把不同的人放在適合的位置。</p>
+                    
+                    <div class="comparison-card" style="padding: 18px;">
+                        <div class="comparison-title" style="margin-bottom: 8px;">大人的破局之道</div>
+                        <ul style="padding-left: 20px; font-size: 0.95rem; line-height: 1.6; color: var(--text-color);">
+                            <li style="margin-bottom: 8px;"><span class="bold-highlight">守護核心圈：</span> 留在最內層核心圈的，只要有兩三個能直言不諱、看透缺點卻依然愛你的真朋友，就已經是人生的至大幸運。</li>
+                            <li><span class="bold-highlight">經營外圍圈：</span> 對於熟人，不需刻意花大把時間約吃飯，逢年過節的一句真誠問候的微連結就足夠了。</li>
+                        </ul>
+                    </div>
+
+                    <div class="illustration-page" style="margin-top: 15px;">
+                        <img src="圖檔二.png" alt="下班後溫暖的個人空間" class="inserted-img" style="max-height: 220px; margin-bottom: 0;">
+                    </div>
+
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>8</span>
+                </div>
+            </div>
+
+            <!-- 第 9 頁 (Spread 5 - Left) -->
+            <div class="page-wrapper" id="p9">
+                <div>
+                    <h3 class="section-title">結語：在社交斷捨離中，找回最純粹的自己</h3>
+                    <p>交友的過程，宛如一趟不斷篩選與沉澱的旅程。隨著我們從單純的學生時代步入充滿差異與現實考量的成人世界，人際關係的本質無可避免地發生了質變。</p>
+                    <p>面對這些轉變，我們不該將精力耗費在無效的感傷與委曲求全中，而是要學會主動篩選。</p>
+                    <p>長大從來不是失去朋友，而是在不同的人生階段裡，學會找到適合彼此的位置。透過人際關係的斷捨離，我們終將騰出心靈的空間，把最珍貴的感性與陪伴，留給那些真正對的人。</p>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>9</span>
+                </div>
+            </div>
+
+            <!-- 第 10 頁 (Spread 5 - Right) -->
+            <div class="page-wrapper" id="p10">
+                <div>
+                    <div class="quote-box">
+                        <div class="quote-tag">重點金句</div>
+                        <div class="quote-content">
+                            「成熟的標誌，是學會拒絕那些只會消耗你情緒價值、卻毫無意義的關係，與其在無效社交中內耗，不如在高品質的孤獨中沉澱。」
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 80px; text-align: center; border-top: 2px solid var(--border-color); padding-top: 35px;">
+                        <p style="font-style: italic; color: #8C7B70; font-size: 1.05rem; font-weight: bold;">第五章完 ｜ 願你在大人的世界裡，自在享受高品質的孤獨。</p>
+                    </div>
+                </div>
+                <div class="page-footer">
+                    <span>第五章 ｜ 人際關係</span>
+                    <span>10</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        《初級大人指南書》線上跨平台翻閱器 &copy; 2026
+    </footer>
+
+    <script>
+        let currentSpread = 0;
+        const totalSpreads = 6; // 包含 封面(0), 雙頁展開(1~5)
+        
+        const coverPage = document.getElementById('cover-page');
+        const pages = [
+            { left: null, right: null }, 
+            { left: document.getElementById('p1'), right: document.getElementById('p2') },
+            { left: document.getElementById('p3'), right: document.getElementById('p4') },
+            { left: document.getElementById('p5'), right: document.getElementById('p6') },
+            { left: document.getElementById('p7'), right: document.getElementById('p8') },
+            { left: document.getElementById('p9'), right: document.getElementById('p10') }
+        ];
+
+        // 綁定點擊翻頁事件
+        document.getElementById('zone-left').addEventListener('click', () => {
+             document.getElementById('btn-prev').click();
+        });
+        document.getElementById('zone-right').addEventListener('click', () => {
+             document.getElementById('btn-next').click();
+        });
+
+        function updateBook() {
+            const isMobile = window.innerWidth <= 950;
+            const bookElement = document.getElementById('book-element');
+            
+            if (currentSpread === 0) {
+                coverPage.classList.remove('hidden');
+                document.getElementById('btn-prev').disabled = true;
+                document.getElementById('page-indicator').innerText = "封面";
+                
+                // 封面時隱藏隱形翻頁區
+                document.getElementById('zone-left').style.display = 'none';
+                document.getElementById('zone-right').style.display = 'none';
+                
+                if(isMobile) bookElement.scrollTop = 0;
+            } else {
+                coverPage.classList.add('hidden');
+                document.getElementById('btn-prev').disabled = false;
+                
+                // 內頁時開啟隱形翻頁區
+                if (!isMobile) {
+                    document.getElementById('zone-left').style.display = 'flex';
+                    document.getElementById('zone-right').style.display = currentSpread === totalSpreads - 1 ? 'none' : 'flex';
+                }
+                
+                if (isMobile) {
+                    document.getElementById('page-indicator').innerText = `頁碼: ${currentSpread * 2 - 1}-${currentSpread * 2} / 10`;
+                    bookElement.scrollTop = 0; 
+                } else {
+                    document.getElementById('page-indicator').innerText = `第 ${currentSpread} / ${totalSpreads - 1} 雙頁`;
+                }
+            }
+
+            if (currentSpread === totalSpreads - 1) {
+                document.getElementById('btn-next').disabled = true;
+            } else {
+                document.getElementById('btn-next').disabled = false;
+            }
+
+            for (let i = 1; i < totalSpreads; i++) {
+                if (i === currentSpread) {
+                    pages[i].left.classList.add('active-left');
+                    if (pages[i].right) pages[i].right.classList.add('active-right');
+                } else {
+                    pages[i].left.classList.remove('active-left');
+                    if (pages[i].right) pages[i].right.classList.remove('active-right');
+                }
+            }
+        }
+
+        function startReading() {
+            currentSpread = 1;
+            updateBook();
+        }
+
+        function jumpToPage(spreadIndex) {
+            currentSpread = spreadIndex;
+            updateBook();
+        }
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentSpread < totalSpreads - 1) {
+                currentSpread++;
+                updateBook();
+            }
+        });
+
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            if (currentSpread > 0) {
+                currentSpread--;
+                updateBook();
+            }
+        });
+
+        document.getElementById('btn-toc').addEventListener('click', () => {
+            currentSpread = 1; 
+            updateBook();
+        });
+
+        // 初始化
+        updateBook();
+        window.addEventListener('resize', updateBook);
+    </script>
+</body>
+</html>
